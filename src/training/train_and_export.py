@@ -24,7 +24,7 @@ os.makedirs(LOG_DIR, exist_ok=True)
 
 # Training hyperparams
 BATCH_SIZE = 32
-EPOCHS = 3
+EPOCHS = 10
 INITIAL_LR = 1e-3
 INPUT_SHAPE = (98, 40, 1)  # (T, n_mels, 1) — matches dataset_tf STFT params
 
@@ -32,7 +32,7 @@ INPUT_SHAPE = (98, 40, 1)  # (T, n_mels, 1) — matches dataset_tf STFT params
 # otherwise you can compute them inline. Here we'll compute again from splits to be sure they match.
 from src.config import TARGET_LABELS, LABEL2INDEX, map_raw_label
 
-def compute_class_weights_from_split():
+"""def compute_class_weights_from_split():
     import json
     from collections import Counter
     train_json = PROJECT_ROOT / "data" / "splits" / "train_files.json"
@@ -56,6 +56,57 @@ if silence_idx in CLASS_WEIGHTS:
     CLASS_WEIGHTS[silence_idx] = min(float(CLASS_WEIGHTS[silence_idx]), 1.0)
 else:
     CLASS_WEIGHTS[silence_idx] = 1.0
+print("CLASS_WEIGHTS:", CLASS_WEIGHTS)"""
+def compute_class_weights_from_split(tolerance_ratio=0.01):
+    """
+    Compute class weights from TRAIN split JSON.
+    - If all class counts are within `tolerance_ratio` of mean count -> return None (balanced).
+    - Protects against zero counts (replace zeros with 1 when computing).
+    - Returns either None or dict {class_index: float(weight)} suitable for Keras.
+    """
+    import json
+    from collections import Counter
+
+    train_json = PROJECT_ROOT / "data" / "splits" / "train_augmented_n3000.json"
+    with open(train_json, "r", encoding="utf-8") as f:
+        items = json.load(f)
+
+    c = Counter()
+    for it in items:
+        mapped = map_raw_label(it["label"])
+        c[LABEL2INDEX[mapped]] += 1
+
+    counts = np.array([c[i] for i in range(len(TARGET_LABELS))], dtype=np.float32)
+
+    # If any class has zero samples, replace with 1 to avoid division by zero (will produce very large weight,
+    # but better than runtime error). We also handle balanced-case below.
+    counts_safe = np.where(counts <= 0.0, 1.0, counts)
+
+    # Detect near-balanced dataset: if every count is within tolerance_ratio (e.g. 1%) of mean -> treat balanced
+    mean = np.mean(counts_safe)
+    max_dev_ratio = np.max(np.abs(counts_safe - mean) / (mean + 1e-9))
+    if max_dev_ratio <= tolerance_ratio:
+        # Balanced enough — do not use class_weight (let dataset be uniformly sampled)
+        print(f"[compute_class_weights_from_split] dataset appears balanced (max_dev_ratio={max_dev_ratio:.4f}), "
+              "skipping class_weight (will pass None).")
+        return None
+
+    # Otherwise compute inverse-frequency weights (normalized to sum = n_classes)
+    inv = 1.0 / counts_safe
+    weights = inv / inv.sum() * len(TARGET_LABELS)
+
+    # Make sure weights are finite and reasonable
+    weights = np.nan_to_num(weights, nan=1.0, posinf=1.0, neginf=1.0)
+
+    return {i: float(weights[i]) for i in range(len(TARGET_LABELS))}
+
+# --- call it once during import ---
+CLASS_WEIGHTS = compute_class_weights_from_split(tolerance_ratio=0.01)
+# If CLASS_WEIGHTS is a dict we can optionally cap silence weight:
+if isinstance(CLASS_WEIGHTS, dict):
+    silence_idx = 10
+    if silence_idx in CLASS_WEIGHTS:
+        CLASS_WEIGHTS[silence_idx] = min(float(CLASS_WEIGHTS[silence_idx]), 1.0)
 print("CLASS_WEIGHTS:", CLASS_WEIGHTS)
 
 
@@ -114,13 +165,24 @@ def train_and_save():
     cb_tb = callbacks.TensorBoard(log_dir=str(LOG_DIR))
 
     # Fit
-    model.fit(
+    """model.fit(
         train_ds,
         validation_data=val_ds,
         epochs=EPOCHS,
         callbacks=[cb_checkpoint, cb_early, cb_reduce, cb_tb],
         class_weight=CLASS_WEIGHTS
-    )
+    )"""
+    fit_kwargs = dict(
+    x=train_ds,
+    validation_data=val_ds,
+    epochs=EPOCHS,
+    callbacks=[cb_checkpoint, cb_early, cb_reduce, cb_tb],
+     )
+    if isinstance(CLASS_WEIGHTS, dict):
+        fit_kwargs["class_weight"] = CLASS_WEIGHTS
+
+    model.fit(**fit_kwargs)
+
 
 
     # Save final model (best weights already restored by EarlyStopping if used)

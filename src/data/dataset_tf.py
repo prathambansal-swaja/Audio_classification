@@ -6,7 +6,7 @@ import os
 from src.config import map_raw_label, LABEL2INDEX, TARGET_LABELS
 
 PROJECT_ROOT = Path(r"F:\Audio_classification")
-TRAIN_JSON = PROJECT_ROOT / "data" / "splits" / "train_files.json"
+TRAIN_JSON = PROJECT_ROOT / "data" / "splits" / "train_augmented_n3000.json"
 VAL_JSON   = PROJECT_ROOT / "data" / "splits" / "val_files.json"
 
 SR = 16000
@@ -60,7 +60,7 @@ def load_split(json_path):
         unknown_samples = [s for s in samples if s[1] == unknown_idx]
         non_unknown_samples = [s for s in samples if s[1] != unknown_idx]
 
-        MAX_UNKNOWN = 8000  # as decided: option B
+        MAX_UNKNOWN = 3000  # as decided: option B
         random.seed(42)     # for reproducibility
 
         if len(unknown_samples) > MAX_UNKNOWN:

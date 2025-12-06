@@ -14,8 +14,8 @@ existing_count = len(train_files)
 for wav in SILENCE_DIR.glob("*.wav"):
     train_files.append({
         "path": str(wav),
-        "label": "_background_noise_",   # raw label
-        "speaker": "silence_gen"         # synthetic speaker ID
+        "label": "silence",   # raw label
+        "speaker": "silence"         # synthetic speaker ID
     })
 
 # Save updated train split
