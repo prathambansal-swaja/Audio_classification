@@ -67,7 +67,7 @@ def compute_class_weights_from_split(tolerance_ratio=0.01):
     import json
     from collections import Counter
 
-    train_json = PROJECT_ROOT / "data" / "splits" / "train_augmented_n3000.json"
+    train_json = PROJECT_ROOT / "data" / "splits" / "train_augmented_n3000_downsampled.json"
     with open(train_json, "r", encoding="utf-8") as f:
         items = json.load(f)
 
@@ -226,13 +226,13 @@ def export_tflite(h5_path, tflite_path):
 
 
 # ---- Inference helpers (offline & realtime) ----
-def predict_from_wav(h5_path, wav_path):
+def predict_from_wav(model, wav_path):
     """
     Loads saved Keras model and predicts label for a single wav file.
     This reuses dataset_tf parsing operations for consistency.
     """
     # Load model
-    model = tf.keras.models.load_model(h5_path)
+    #model = tf.keras.models.load_model(h5_path)
     # Build a one-element TF dataset for the wav path (so preprocessing is identical)
     ds = tf.data.Dataset.from_tensors((wav_path, 0)).map(dataset_tf.parse_path_label)
     ds = ds.batch(1)

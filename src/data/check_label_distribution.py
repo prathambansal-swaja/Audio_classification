@@ -4,7 +4,7 @@ from pathlib import Path
 
 from src.config import map_raw_label, TARGET_LABELS
 
-TRAIN_JSON = Path(r"F:/Audio_classification/data/splits/train_files.json")
+TRAIN_JSON = Path(r"F:/Audio_classification/data/splits/train_augmented_n3000_downsampled.json")
 
 with open(TRAIN_JSON, "r") as f:
     train_files = json.load(f)

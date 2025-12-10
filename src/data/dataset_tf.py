@@ -6,7 +6,7 @@ import os
 from src.config import map_raw_label, LABEL2INDEX, TARGET_LABELS
 
 PROJECT_ROOT = Path(r"F:\Audio_classification")
-TRAIN_JSON = PROJECT_ROOT / "data" / "splits" / "train_augmented_n3000.json"
+TRAIN_JSON = PROJECT_ROOT / "data" / "splits" / "train_augmented_n3000_downsampled.json"
 VAL_JSON   = PROJECT_ROOT / "data" / "splits" / "val_files.json"
 
 SR = 16000
