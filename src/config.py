@@ -28,6 +28,7 @@ def map_raw_label(raw_label: str) -> str:
     """
     if raw_label in KEYWORDS:
         return raw_label
-    if raw_label == "_background_noise_":
+    #if raw_label == "_background_noise_":
+    if raw_label in ("_background_noise_", "silence"):
         return "silence"
     return "unknown"
